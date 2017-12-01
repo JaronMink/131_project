@@ -24,7 +24,7 @@ def main():
 
     #close socket
     server.close()
-    loop.run_until_complete(server.wait_close())
+    loop.run_until_complete(server.wait_closed())
     loop.close()
 
 if __name__ == '__main__':
