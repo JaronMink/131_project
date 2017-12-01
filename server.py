@@ -14,7 +14,7 @@ def main():
         #x = 5
     #print('hi')
     loop = asyncio.get_event_loop()
-    coroutine = asyncio.start_server(handle_client_msg, '127.0.0.1', 8888, loop=loop)
+    coroutine = asyncio.start_server(handle_client_msg, '127.0.0.1', 8889, loop=loop)
     server = loop.run_until_complete(coroutine)
 
     try:
