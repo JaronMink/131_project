@@ -62,7 +62,7 @@ def main():
     try:
         while True:
             input("press Enter to send location to server")
-            message = 'IAMAT jaron.cs.ucla.edu +34.068930-118.445127 %d' %  time.time()
+            message = 'IAMAT jaron.cs.ucla.edu +34.068930-118.445127 %f' %  time.time()
             loop.run_until_complete(tcp_echo_client(message, loop))
     except KeyboardInterrupt:
         pass
