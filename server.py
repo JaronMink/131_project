@@ -198,7 +198,7 @@ async def sendGoogleRequest(getMessage):
         body = await reader.readuntil(b'\r\n\r\n')#separator=b'\r\n\r\n')
         decodedBody = decodeChunked(body.decode())
                 
-        return body.decode()
+        return decodedBody
 
     except Exception as e:
         print(e)
