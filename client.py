@@ -27,8 +27,8 @@ async def tcp_echo_client(message, loop):
     writer.write(message.encode())
 
     data = await reader.read()
-    jsonBody = json.loads(data.decode())
-    print('Received: %r' % jsonBody)
+    #jsonBody = json.loads(data.decode())
+    print('Received: %s' % data.decode())
 
     writer.close()
 

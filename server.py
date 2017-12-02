@@ -245,7 +245,7 @@ async def handle_client_msg(reader, writer):
 
         else:
             jsonResponse = await googlePlacesRequest(message)
-
+            print(jsonResponse)
             writer.write(jsonResponse.encode())
             await writer.drain()
 
