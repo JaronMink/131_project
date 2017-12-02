@@ -162,8 +162,45 @@ def floodConnectedServers(location):
 
 def formatGooglePlacesRequest(location, radius):
     uri = 'https://maps.googleapis.com/maps/api/place/nearbysearch/json?key=%s&location=%s,%s&radius=%s' % (superSecretAPIKeyDONTLOOK, location.latitude, location.longitude, radius)
-    requestLine = 'GET %s HTTP/1.0\r\n\r\n' % uri
+    requestLine = 'GET %s HTTP/1.1\r\n\r\n' % uri
     return requestLine
+
+def decodeChunked (message):
+	    decoded = ''
+	    encoded = message
+	    try:
+	        while (encoded != ''):
+	            off = int(encoded[:str.index(encoded,"\r\n")], 16)
+	            if off == 0:
+	                break
+
+	            encoded = encoded[str.index(encoded,"\r\n") + 2:]
+	            new = "%s%s" % (new, encoded[:off])
+	            encoded = encoded[str.index(encoded,"\r\n") + 2:]
+	    except:
+	        raise RuntimeError
+	    return new
+
+def decode_chunked(data):
+    offset = 0
+    encdata = ''
+    newdata = ''
+    offset = string.index(data, "\r\n\r\n") + 4 # get the offset 
+    # of the data payload. you can also parse content-length header as well.
+    encdata =data[offset:]
+    try:
+        while (encdata != ''):
+            off = int(encdata[:string.index(encdata,"\r\n")],16)
+            if off == 0:
+                break
+            encdata = encdata[string.index(encdata,"\r\n") + 2:]
+            newdata = "%s%s" % (newdata, encdata[:off])
+            encdata = encdata[off+2:]
+                             
+    except:
+       line = traceback.format_exc()
+       print("Exception! %s" % line) # probably indexes are wrong
+    return newdata
 
 async def sendGoogleRequest(getMessage):
     log = logging.getLogger('log')
@@ -176,10 +213,15 @@ async def sendGoogleRequest(getMessage):
         writer.write(getMessage.encode())
         await writer.drain()
 
-        header = await reader.readuntil('\r\n\r\n')
-        body = await reader.readuntil('\r\n\r\n')
-        log.debug('RECIEVED GOOGLE DATA:%s' % (body))
-        print('Recieved Google Data:%s' % (getMessage))
+        header = await reader.readuntil(b'\r\n\r\n')#(b'0x5c725c6e5c725c6e') #separator=b'\r\n\r\n')
+        #print(header)
+        body = await reader.readuntil(b'\r\n\r\n')#separator=b'\r\n\r\n')
+        #print(body.decode())
+        decodedBody = decodeChunked(body.decode())
+        print(decodedBody)
+        #print(decodedBody)
+        #log.debug('RECIEVED GOOGLE DATA:%s' % (body))
+        #print('Recieved Google Data:%s' % (getMessage))
         return body.decode()
 
     except Exception as e:
@@ -208,7 +250,7 @@ def extractImportantJson(jsonResponse, numberOfEntries):
 async def handle_client_msg(reader, writer):
     global cache
 
-    data = await reader.read()
+    data = await reader.read(1000)
     message = data.decode()
 
     #log things
