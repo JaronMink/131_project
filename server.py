@@ -168,7 +168,7 @@ async def sendGoogleRequest(getMessage):
     log = logging.getLogger('log')
 
     try:
-        reader, writer = await asyncio.open_connection('maps.googleapis.com', 443, ssl=True)
+        reader, writer = await asyncio.open_connection('maps.googleapis.com', 443, loop=loop, ssl=True)
 
         log.debug('SENT GET REQUEST TO GOOGLE PLACES:%s' % (getMessage))
         print('SENT GET REQUEST TO GOOGLE PLACES:%s' % (getMessage))
