@@ -2,6 +2,7 @@ import sys
 import asyncio
 import logging
 import time
+import json
 
 #key is the client id
 cache = {}
@@ -175,10 +176,11 @@ async def sendGoogleRequest(getMessage):
         writer.write(getMessage.encode())
         await writer.drain()
 
-        data = await reader.read()
-        log.debug('RECIEVED GOOGLE DATA:%s' % (data))
+        header = await reader.readuntil('\r\n\r\n')
+        body = await reader.readuntil('\r\n\r\n')
+        log.debug('RECIEVED GOOGLE DATA:%s' % (body))
         print('Recieved Google Data:%s' % (getMessage))
-        return data.decode()
+        return body.decode()
 
     except Exception as e:
         print(e)
@@ -199,11 +201,14 @@ def googlePlacesRequest(message):
     #print(getRequest)
     return asyncio.ensure_future(sendGoogleRequest(getRequest))
 
+def extractImportantJson(jsonResponse, numberOfEntries):
+    jsonDict = json.loads(jsonResponse)
+
 
 async def handle_client_msg(reader, writer):
     global cache
 
-    data = await reader.read(100)
+    data = await reader.read()
     message = data.decode()
 
     #log things
@@ -213,7 +218,7 @@ async def handle_client_msg(reader, writer):
     #if valid IAMAT, create location, add location to cache, send to other servers, send AT back to client
     if isValidIAMAT(message):
         log.debug('RECEIVED FROM %s:%s' % (addr, message))
-        print('Recieved Command: %s' % message)
+        print('Received Command: %s' % message)
         location = getLocationFromIAMAT(message)
         cache[location.id] = location
         writer.write(location.toATMessage().encode())
@@ -246,6 +251,8 @@ async def handle_client_msg(reader, writer):
         else:
             jsonResponse = await googlePlacesRequest(message)
             print(jsonResponse)
+            #numPlaces = message.split[3]
+            #message = extractImportantJson(jsonResponse, numPlaces)
             writer.write(jsonResponse.encode())
             await writer.drain()
 
