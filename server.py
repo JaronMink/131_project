@@ -176,6 +176,8 @@ async def sendGoogleRequest(getMessage):
         await writer.drain()
 
         data = await reader.read()
+        log.debug('RECIEVED GOOGLE DATA:%s' % (data))
+        print('Recieved Google Data:%s' % (getMessage))
         return data.decode()
 
     except Exception as e:
@@ -243,8 +245,7 @@ async def handle_client_msg(reader, writer):
 
         else:
             jsonResponse = await googlePlacesRequest(message)
-            print (jsonResponse)
-            print('blah)=')
+
             writer.write(jsonResponse.encode())
             await writer.drain()
 

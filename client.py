@@ -25,7 +25,7 @@ async def tcp_echo_client(message, loop):
     #print('Send: %r' % message)
     writer.write(message.encode())
 
-    data = await reader.read(100)
+    data = await reader.read()
     print('Received: %r' % data.decode())
 
     writer.close()
