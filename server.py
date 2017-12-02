@@ -3,7 +3,8 @@ import asyncio
 import logging
 import time
 
-cache = []
+#key is the client id
+cache = {}
 currentServer = -1
 
 
@@ -12,6 +13,7 @@ BALL = 1
 HAMILTON = 2
 HOLIDAY = 3
 WELSH = 4
+loop = None
 
 def getConnectedServers():
     global currentServer
@@ -24,7 +26,7 @@ def getConnectedServers():
     elif currentServer == HOLIDAY:
         return [HAMILTON, BALL]
     elif currentServer == WELSH:
-        return [ALFORD, WELSH]
+        return [ALFORD, BALL]
     else:
         errorExitOne('error, unidentified server number')
 
@@ -50,6 +52,11 @@ def serverToString(server):
     else:
         return 'Error, incorrect server'
 
+def isValidFloodMessage(message):
+    parsedMessage = message.split()
+    if parsedMessage[0] != 'FLOOD' or len(parsedMessage) != 7:
+        return False
+    return True
 
 def isValidIAMAT(message):
     parsedMessage = message.split()
@@ -75,6 +82,14 @@ class Location:
 
     def toString(self):
         return('%s %s %s %s %s %s' % (self.id, self.latitude, self.longitude, self.posixTime, self.receivedTime, self.receivedServer));
+
+    def toFloodMsg(self):
+        return ('FLOOD %s' % self.toString())
+
+    @staticmethod
+    def floodToLocation(msg):
+        parsedString = msg.split()
+        return Location(parsedString[1], parsedString[2], parsedString[3], parsedString[4], parsedString[5], parsedString[6])
 
     @staticmethod
     def stringToLocation(string):
@@ -109,6 +124,30 @@ def getLocationFromIAMAT(command):
 
     return Location(id, latitude, longitude, posixTime, time.time(), currentServer)
 
+async def flood(message, destinationServer, loop):
+
+    log = logging.getLogger('log')
+
+    try:
+        reader, writer = await asyncio.open_connection('127.0.0.1', 8889 + destinationServer,
+                            loop=loop)
+        log.debug('SENT FLOOD TO %s:%s' % (serverToString(destinationServer), message))
+        print('Sent Flood to %s:%s' % (serverToString(destinationServer), message))
+        writer.write(message.encode())
+        await writer.drain()
+
+    except Exception:
+        log.error('ERROR, CANNOT CONNECT TO SERVER %s. FAILED MESSAGE: %s' % (serverToString(destinationServer), message))
+        print('ERROR, CANNOT CONNECT TO SERVER %s. FAILED MESSAGE: %s' % (serverToString(destinationServer), message), file=sys.stderr)
+    finally:
+        writer.close()
+
+    writer.close
+
+def floodConnectedServers(location):
+    for server in getConnectedServers():
+        task = asyncio.ensure_future(flood(location.toFloodMsg(), server, loop))
+
 async def handle_client_msg(reader, writer):
     global cache
 
@@ -124,12 +163,26 @@ async def handle_client_msg(reader, writer):
         log.debug('RECEIVED FROM %s:%s' % (addr, message))
         print('Recieved Command: %s' % message)
         location = getLocationFromIAMAT(message)
-        cache.append(location)
+        cache[location.id] = location
         writer.write(location.toATMessage().encode())
         await  writer.drain()
 
+        #add to other servers
+        floodConnectedServers(location)
+
         log.debug('SENT TO %s:%s' % (addr, location.toATMessage()))
         print('Sent to Client: %s' % location.toATMessage())
+    elif isValidFloodMessage(message):
+        location = Location.floodToLocation(message)
+        if location.id not in cache or (location.id in cache and location.posixTime > cache[location.id].posixTime):
+            cache[location.id] = location
+            floodConnectedServers(location)
+            log.debug('FLOOD RECIEVED FROM OTHER SERVER %s: %s' % (addr, message))
+            print('FLOOD RECIEVED FROM OTHER SERVER %s: %s' % (addr, message))
+
+        else:
+            log.debug('REDUNANT FLOOD RECIEVED FROM OTHER SERVER %s: %s' % (addr, message))
+            print('REDUNANT FLOOD RECIEVED FROM OTHER SERVER %s: %s' % (addr, message))
 
     else:
         log.debug('RECEIVED INVALID COMMAND FROM %s:%s' % (addr, message))
@@ -140,8 +193,6 @@ async def handle_client_msg(reader, writer):
 
         log.debug('SENT TO %s:%s' % (addr, message))
 
-
-
     writer.close()
 
 
@@ -151,7 +202,7 @@ def configureLogging():
 
 
     logging.basicConfig(
-        filename=serverToString(currentServer),
+        filename='%s.log' % serverToString(currentServer),
         level=logging.DEBUG
     )
 
@@ -192,6 +243,7 @@ def main():
     configureLogging()
 
     basePort = 8889
+    global loop
     loop = asyncio.get_event_loop()
     coroutine = asyncio.start_server(handle_client_msg, '127.0.0.1', 8889 + currentServer, loop=loop)
     server = loop.run_until_complete(coroutine)
