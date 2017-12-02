@@ -220,9 +220,21 @@ def googlePlacesRequest(message):
     return asyncio.ensure_future(sendGoogleRequest(getRequest))
 
 def extractImportantJson(jsonResponse, numberOfEntries):
-    jsonDict = json.loads(jsonResponse)
-
-
+    #print(jsonResponse)
+    try:
+        response = json.loads(jsonResponse)
+        results = response['results']
+        newResults = []
+        for i in range(int(numberOfEntries)):
+            newResults.append(results[i])
+            
+        response['results'] = newResults
+        #print(json.dumps(response, indent=3))
+        return json.dumps(response, indent=3)
+    except:
+        print(sys.exc_info()[0])
+        return None
+    
 async def handle_client_msg(reader, writer):
     global cache
 
@@ -268,10 +280,10 @@ async def handle_client_msg(reader, writer):
 
         else:
             jsonResponse = await googlePlacesRequest(message)
-            print(jsonResponse)
-            #numPlaces = message.split[3]
-            #message = extractImportantJson(jsonResponse, numPlaces)
-            writer.write(jsonResponse.encode())
+            #print(jsonResponse)
+            numPlaces = message.split()[3]
+            response = extractImportantJson(jsonResponse, numPlaces)
+            writer.write(response.encode())
             await writer.drain()
 
     else:

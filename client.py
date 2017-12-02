@@ -65,7 +65,7 @@ def main():
         while True:
             option = input("press Enter to send location to server")
             if option == 'w':
-                message = 'WHATSAT jaron.cs.ucla.edu 10 5'
+                message = 'WHATSAT jaron.cs.ucla.edu 10 2'
             else:
                 message = 'IAMAT jaron.cs.ucla.edu +34.068930-118.445127 %f' %  time.time()
             loop.run_until_complete(tcp_echo_client(message, loop))
