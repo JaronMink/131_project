@@ -159,8 +159,44 @@ def floodConnectedServers(location):
     for server in getConnectedServers():
         task = asyncio.ensure_future(flood(location.toFloodMsg(), server, loop))
 
+def formatGooglePlacesRequest(location, radius):
+    uri = 'https://maps.googleapis.com/maps/api/place/nearbysearch/json?key=%s&location=%s,%s&radius=%s' % (superSecretAPIKeyDONTLOOK, location.latitude, location.longitude, radius)
+    requestLine = 'GET %s HTTP/1.0\r\n\r\n' % uri
+    return requestLine
+
+async def sendGoogleRequest(getMessage):
+    log = logging.getLogger('log')
+
+    try:
+        reader, writer = await asyncio.open_connection('maps.googleapis.com', 443, ssl=True)
+
+        log.debug('SENT GET REQUEST TO GOOGLE PLACES:%s' % (getMessage))
+        print('SENT GET REQUEST TO GOOGLE PLACES:%s' % (getMessage))
+        writer.write(getMessage.encode())
+        await writer.drain()
+
+        data = await reader.read()
+        return data.decode()
+
+    except Exception as e:
+        print(e)
+        log.error('ERROR, CANNOT CONNECT TO GOOGLE PLACES. FAILED MESSAGE: %s' % (getMessage))
+        print('ERROR, CANNOT CONNECT TO GOOGLE PLACES. FAILED MESSAGE: %s' % (getMessage), file=sys.stderr)
+        return
+    finally:
+        writer.close()
+
 def googlePlacesRequest(message):
-    print('do something here')
+    log = logging.getLogger('log')
+    parsedMessage = message.split()
+    print(message)
+    id = parsedMessage[1]
+    radius = parsedMessage[2]
+    #print(id)
+    location = cache[id]
+    getRequest = formatGooglePlacesRequest(location, radius)
+    return asyncio.ensure_future(sendGoogleRequest(getRequest))
+
 
 async def handle_client_msg(reader, writer):
     global cache
@@ -199,8 +235,18 @@ async def handle_client_msg(reader, writer):
             print('REDUNANT FLOOD RECIEVED FROM OTHER SERVER %s: %s' % (addr, message))
 
     elif isValidWHATSAT(message):
-        #print('whatsatgot')
-        jsonObject = googlePlacesRequest(message)
+        parsedMessage = message.split()
+
+        if parsedMessage[1] not in cache:
+            log.error('ERROR, ID IN WHATSAT NOT VALID:%s' % message)
+            print('ERROR, ID IN WHATSAT NOT VALID:%s' % message, file=sys.stderr)
+
+        else:
+            jsonResponse = await googlePlacesRequest(message)
+            print (jsonResponse)
+            writer.write(jsonResponse.encode())
+            await writer.drain()
+
     else:
         log.debug('RECEIVED INVALID COMMAND FROM %s:%s' % (addr, message))
         print('Error, received an invalid command: %s' % (message) , file=sys.stderr)
