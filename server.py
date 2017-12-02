@@ -166,41 +166,21 @@ def formatGooglePlacesRequest(location, radius):
     return requestLine
 
 def decodeChunked (message):
-	    decoded = ''
-	    encoded = message
-	    try:
-	        while (encoded != ''):
-	            off = int(encoded[:str.index(encoded,"\r\n")], 16)
-	            if off == 0:
-	                break
-
-	            encoded = encoded[str.index(encoded,"\r\n") + 2:]
-	            new = "%s%s" % (new, encoded[:off])
-	            encoded = encoded[str.index(encoded,"\r\n") + 2:]
-	    except:
-	        raise RuntimeError
-	    return new
-
-def decode_chunked(data):
-    offset = 0
-    encdata = ''
-    newdata = ''
-    offset = string.index(data, "\r\n\r\n") + 4 # get the offset 
-    # of the data payload. you can also parse content-length header as well.
-    encdata =data[offset:]
+    decoded = ''
+    encoded = message
     try:
-        while (encdata != ''):
-            off = int(encdata[:string.index(encdata,"\r\n")],16)
+        while (encoded != ''):
+            off = int(encoded[:str.index(encoded,"\r\n")], 16)
             if off == 0:
                 break
-            encdata = encdata[string.index(encdata,"\r\n") + 2:]
-            newdata = "%s%s" % (newdata, encdata[:off])
-            encdata = encdata[off+2:]
-                             
+
+            encoded = encoded[str.index(encoded,"\r\n") + 2:]
+            new = "%s%s" % (new, encoded[:off])
+            encoded = encoded[str.index(encoded,"\r\n") + 2:]
     except:
-       line = traceback.format_exc()
-       print("Exception! %s" % line) # probably indexes are wrong
-    return newdata
+        raise RuntimeError
+    return new
+
 
 async def sendGoogleRequest(getMessage):
     log = logging.getLogger('log')
