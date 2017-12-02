@@ -7,6 +7,9 @@ import time
 cache = {}
 currentServer = -1
 
+superSecretAPIKeyDONTLOOK = 'AIzaSyBKXPrzb4fsWaCCTGq3xR2NgzelAQcMsek'
+
+basePort = 8889
 
 ALFORD = 0
 BALL = 1
@@ -64,6 +67,12 @@ def isValidIAMAT(message):
         return False
     return True
 
+def isValidWHATSAT(message):
+    parsedMessage = message.split()
+    if parsedMessage[0] != 'WHATSAT' or len(parsedMessage) != 4 or int(parsedMessage[2]) > 50 or int(parsedMessage[3]) > 20:
+        return False
+    return True
+
 class Location:
     def __init__(self, id, latitude, longitude, posixTime, recievedTime, server):
         self.id = id
@@ -81,7 +90,7 @@ class Location:
         return ("AT %s %s %s %s%s %s" %(serverToString(self.receivedServer), timeDiff, self.id, self.longitude, self.latitude, self.posixTime))
 
     def toString(self):
-        return('%s %s %s %s %s %s' % (self.id, self.latitude, self.longitude, self.posixTime, self.receivedTime, self.receivedServer));
+        return('%s %s %s %s %s %s' % (self.id, self.latitude, self.longitude, self.posixTime, self.receivedTime, self.receivedServer))
 
     def toFloodMsg(self):
         return ('FLOOD %s' % self.toString())
@@ -129,7 +138,7 @@ async def flood(message, destinationServer, loop):
     log = logging.getLogger('log')
 
     try:
-        reader, writer = await asyncio.open_connection('127.0.0.1', 8889 + destinationServer,
+        reader, writer = await asyncio.open_connection('127.0.0.1', basePort + destinationServer,
                             loop=loop)
         log.debug('SENT FLOOD TO %s:%s' % (serverToString(destinationServer), message))
         print('Sent Flood to %s:%s' % (serverToString(destinationServer), message))
@@ -144,9 +153,14 @@ async def flood(message, destinationServer, loop):
 
     writer.close
 
+
+
 def floodConnectedServers(location):
     for server in getConnectedServers():
         task = asyncio.ensure_future(flood(location.toFloodMsg(), server, loop))
+
+def googlePlacesRequest(message):
+    print('do something here')
 
 async def handle_client_msg(reader, writer):
     global cache
@@ -184,6 +198,9 @@ async def handle_client_msg(reader, writer):
             log.debug('REDUNANT FLOOD RECIEVED FROM OTHER SERVER %s: %s' % (addr, message))
             print('REDUNANT FLOOD RECIEVED FROM OTHER SERVER %s: %s' % (addr, message))
 
+    elif isValidWHATSAT(message):
+        #print('whatsatgot')
+        jsonObject = googlePlacesRequest(message)
     else:
         log.debug('RECEIVED INVALID COMMAND FROM %s:%s' % (addr, message))
         print('Error, received an invalid command: %s' % (message) , file=sys.stderr)
@@ -232,20 +249,16 @@ def setUpServerNumber():
 
 
 def main():
-    #while True\\
-        #x = 5
-    #print('hi')
     global currentServer
+
     setUpServerNumber()
-    #message = 'IAMAT g.w +342.323-2.32123 43242.3434'
-    #location = getLocationFromIAMAT(message)
+
 
     configureLogging()
 
-    basePort = 8889
     global loop
     loop = asyncio.get_event_loop()
-    coroutine = asyncio.start_server(handle_client_msg, '127.0.0.1', 8889 + currentServer, loop=loop)
+    coroutine = asyncio.start_server(handle_client_msg, '127.0.0.1', basePort + currentServer, loop=loop)
     server = loop.run_until_complete(coroutine)
 
     try:
