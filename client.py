@@ -1,6 +1,7 @@
 import asyncio
 import time
 import sys
+import json
 
 currentServer = -1
 ALFORD = 0
@@ -26,7 +27,8 @@ async def tcp_echo_client(message, loop):
     writer.write(message.encode())
 
     data = await reader.read()
-    print('Received: %r' % data.decode())
+    jsonBody = json.loads(data.decode())
+    print('Received: %r' % jsonBody)
 
     writer.close()
 
