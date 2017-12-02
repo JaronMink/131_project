@@ -161,7 +161,7 @@ def floodConnectedServers(location):
         task = asyncio.ensure_future(flood(location.toFloodMsg(), server, loop))
 
 def formatGooglePlacesRequest(location, radius):
-    uri = 'https://maps.googleapis.com/maps/api/place/nearbysearch/json?key=%s&location=%s,%s&radius=%s' % (superSecretAPIKeyDONTLOOK, location.latitude, location.longitude, radius)
+    uri = 'https://maps.googleapis.com/maps/api/place/nearbysearch/json?key=%s&location=%s,%s&radius=%s' % (superSecretAPIKeyDONTLOOK, str(float(location.latitude)), str(float(location.longitude)), float(radius)*1000)
     requestLine = 'GET %s HTTP/1.1\r\n\r\n' % uri
     return requestLine
 
@@ -175,11 +175,12 @@ def decodeChunked (message):
                 break
 
             encoded = encoded[str.index(encoded,"\r\n") + 2:]
-            new = "%s%s" % (new, encoded[:off])
+            decoded = "%s%s" % (decoded, encoded[:off])
             encoded = encoded[str.index(encoded,"\r\n") + 2:]
     except:
+        print(sys.exc_info()[0])
         raise RuntimeError
-    return new
+    return decoded
 
 
 async def sendGoogleRequest(getMessage):
@@ -194,14 +195,9 @@ async def sendGoogleRequest(getMessage):
         await writer.drain()
 
         header = await reader.readuntil(b'\r\n\r\n')#(b'0x5c725c6e5c725c6e') #separator=b'\r\n\r\n')
-        #print(header)
         body = await reader.readuntil(b'\r\n\r\n')#separator=b'\r\n\r\n')
-        #print(body.decode())
         decodedBody = decodeChunked(body.decode())
-        print(decodedBody)
-        #print(decodedBody)
-        #log.debug('RECIEVED GOOGLE DATA:%s' % (body))
-        #print('Recieved Google Data:%s' % (getMessage))
+                
         return body.decode()
 
     except Exception as e:
