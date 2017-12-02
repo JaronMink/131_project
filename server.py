@@ -192,7 +192,6 @@ def googlePlacesRequest(message):
     print(message)
     id = parsedMessage[1]
     radius = parsedMessage[2]
-    #print(id)
     location = cache[id]
     getRequest = formatGooglePlacesRequest(location, radius)
     #print(getRequest)
@@ -245,6 +244,7 @@ async def handle_client_msg(reader, writer):
         else:
             jsonResponse = await googlePlacesRequest(message)
             print (jsonResponse)
+            print('blah)=')
             writer.write(jsonResponse.encode())
             await writer.drain()
 
