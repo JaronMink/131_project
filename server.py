@@ -87,7 +87,7 @@ class Location:
         if timeDiff > 0:
             timeDiff = "+%f" % timeDiff
 
-        return ("AT %s %s %s %s%s %s" %(serverToString(self.receivedServer), timeDiff, self.id, self.longitude, self.latitude, self.posixTime))
+        return ("AT %s %s %s %s%s %s" %(serverToString(self.receivedServer), timeDiff, self.id, self.latitude, self.longitude, self.posixTime))
 
     def toString(self):
         return('%s %s %s %s %s %s' % (self.id, self.latitude, self.longitude, self.posixTime, self.receivedTime, self.receivedServer))
@@ -128,7 +128,7 @@ def getLocationFromIAMAT(command):
     parsedCommand = command.split()
     id = parsedCommand[1]
     longAndLat = parsedCommand[2]
-    longitude, latitude = seperateLongAndLat(longAndLat)
+    latitude, longitude = seperateLongAndLat(longAndLat)
     posixTime = parsedCommand[3]
 
     return Location(id, latitude, longitude, posixTime, time.time(), currentServer)
@@ -195,6 +195,7 @@ def googlePlacesRequest(message):
     #print(id)
     location = cache[id]
     getRequest = formatGooglePlacesRequest(location, radius)
+    #print(getRequest)
     return asyncio.ensure_future(sendGoogleRequest(getRequest))
 
 
