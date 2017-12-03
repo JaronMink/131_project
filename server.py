@@ -10,7 +10,7 @@ currentServer = -1
 
 superSecretAPIKeyDONTLOOK = 'AIzaSyBKXPrzb4fsWaCCTGq3xR2NgzelAQcMsek'
 
-basePort = 8889
+basePort = 15890
 
 ALFORD = 0
 BALL = 1
@@ -66,11 +66,22 @@ def isValidIAMAT(message):
     parsedMessage = message.split()
     if parsedMessage[0] != 'IAMAT' or len(parsedMessage) != 4:
         return False
+    try:
+        latitude, longitude = seperateLongAndLat(parsedMessage [2])
+        float(latitude)
+        float(longitude)
+        float(parsedMessage[3])
+    except:
+        return False
     return True
 
 def isValidWHATSAT(message):
     parsedMessage = message.split()
-    if parsedMessage[0] != 'WHATSAT' or len(parsedMessage) != 4 or int(parsedMessage[2]) > 50 or int(parsedMessage[3]) > 20:
+    try:
+        if parsedMessage[0] != 'WHATSAT' or len(parsedMessage) != 4 or int(parsedMessage[2]) > 50 or int(parsedMessage[3]) > 20 or int(parsedMessage[2]) <=0 or int(parsedMessage[3]) <=0:
+            return False
+
+    except:
         return False
     return True
 
@@ -220,16 +231,16 @@ def googlePlacesRequest(message):
     return asyncio.ensure_future(sendGoogleRequest(getRequest))
 
 def extractImportantJson(jsonResponse, numberOfEntries):
-    #print(jsonResponse)
     try:
         response = json.loads(jsonResponse)
         results = response['results']
         newResults = []
+        if len(results) < int(numberOfEntries):
+            numberOfEntries = len(results)
         for i in range(int(numberOfEntries)):
             newResults.append(results[i])
             
         response['results'] = newResults
-        #print(json.dumps(response, indent=3))
         return json.dumps(response, indent=3)
     except:
         print(sys.exc_info()[0])
@@ -274,6 +285,7 @@ async def handle_client_msg(reader, writer):
     elif isValidWHATSAT(message):
         parsedMessage = message.split()
 
+        
         if parsedMessage[1] not in cache:
             log.error('ERROR, ID IN WHATSAT NOT VALID:%s' % message)
             print('ERROR, ID IN WHATSAT NOT VALID:%s' % message, file=sys.stderr)
@@ -283,6 +295,8 @@ async def handle_client_msg(reader, writer):
             #print(jsonResponse)
             numPlaces = message.split()[3]
             response = extractImportantJson(jsonResponse, numPlaces)
+            log.debug('SENT TO CLIENT WHATSAT:%s' %(response))
+            print('Sent to Client WHATSAT: %s' % response)
             writer.write(response.encode())
             await writer.drain()
 

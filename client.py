@@ -20,7 +20,7 @@ def errorExitOne(msg):
 async def tcp_echo_client(message, loop):
     global currentServer
 
-    reader, writer = await asyncio.open_connection('127.0.0.1', 8889 + currentServer,
+    reader, writer = await asyncio.open_connection('127.0.0.1', 15890 + currentServer,
                                                    loop=loop)
 
     #print('Send: %r' % message)
