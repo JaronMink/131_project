@@ -78,7 +78,7 @@ def isValidIAMAT(message):
 def isValidWHATSAT(message):
     parsedMessage = message.split()
     try:
-        if parsedMessage[0] != 'WHATSAT' or len(parsedMessage) != 4 or int(parsedMessage[2]) > 50 or int(parsedMessage[3]) > 20 or int(parsedMessage[2]) <=0 or int(parsedMessage[3]) <=0:
+        if parsedMessage[0] != 'WHATSAT' or len(parsedMessage) != 4 or int(parsedMessage[2]) > 50 or int(parsedMessage[3]) > 20 or int(parsedMessage[2])<0 or int(parsedMessage[3])<0:
             return False
 
     except:
@@ -213,8 +213,8 @@ async def sendGoogleRequest(getMessage):
 
     except Exception as e:
         print(e)
-        log.error('ERROR, CANNOT CONNECT TO GOOGLE PLACES. FAILED MESSAGE: %s' % (getMessage))
-        print('ERROR, CANNOT CONNECT TO GOOGLE PLACES. FAILED MESSAGE: %s' % (getMessage), file=sys.stderr)
+        log.error('ERROR, FAILED SENDING MESSAGE TO GOOGLE PLACES. FAILED MESSAGE: %s' % (getMessage))
+        print('ERROR, FAILED SENDING MESSAGE TO GOOGLE PLACES. FAILED MESSAGE: %s' % (getMessage), file=sys.stderr)
         return
     finally:
         writer.close()
@@ -243,8 +243,8 @@ def extractImportantJson(jsonResponse, numberOfEntries):
         response['results'] = newResults
         return json.dumps(response, indent=3)
     except:
-        print(sys.exc_info()[0])
-        return None
+        #print(sys.exc_info()[0])
+        return jsonResponse
     
 async def handle_client_msg(reader, writer):
     global cache
@@ -289,7 +289,8 @@ async def handle_client_msg(reader, writer):
         if parsedMessage[1] not in cache:
             log.error('ERROR, ID IN WHATSAT NOT VALID:%s' % message)
             print('ERROR, ID IN WHATSAT NOT VALID:%s' % message, file=sys.stderr)
-
+            writer.write('ID provided is not in database'.encode())
+            await writer.drain()
         else:
             jsonResponse = await googlePlacesRequest(message)
             #print(jsonResponse)
